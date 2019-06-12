@@ -1,26 +1,36 @@
 import quickbench
-import numpy as np 
+import numpy as np
 
 ###
 # Data that will be fed to the functions being benchmarked
 
 N = 1000
-A, B, C = np.random.randn(N,N), np.random.randn(N,1), np.random.randn(1,N)
+A, B, C = np.random.randn(N, N), np.random.randn(N, 1), np.random.randn(1, N)
 
-datafunc = lambda: (A, B, C)
+
+args = {"A": A, "B": B, "C": C}
 
 ###
 # Benchmarking lambda expressions
 
-f1 = lambda A, B, C: (A @ B) @ C
-f2 = lambda A, B, C: A @ (B @ C)
-f3 = lambda A, B, C: np.einsum("ij,jk,kl->il", A, B, C)
 
-quickbench.check(datafunc, [f1, f2, f3], compfunc=lambda x,y: np.allclose(x,y))
+def f1(A, B, C):
+    return (A @ B) @ C
+
+
+def f2(A, B, C):
+    return A @ (B @ C)
+
+
+def f3(A, B, C):
+    return np.einsum("ij,jk,kl->il", A, B, C, optimize=True)
+
+
+quickbench.check([f1, f2, f3], args, compfunc=lambda x, y: np.allclose(x, y))
 # > [1] <lambda> matches [0] <lambda>: True
 # > [2] <lambda> matches [0] <lambda>: True
 
-quickbench.bench(datafunc, [f1, f2, f3])
+quickbench.bench([f1, f2, f3], args)
 # > +-----------------+-----------------+-----------------+
 # > |       Functions |      Time (tot) | Time (per iter) |
 # > +-----------------+-----------------+-----------------+
@@ -30,17 +40,16 @@ quickbench.bench(datafunc, [f1, f2, f3])
 # > +-----------------+-----------------+-----------------+
 
 
-
 ###
 # Adding names for prettier prettyprint
 
 names = ["naive1", "naive2", "einsum"]
 
-quickbench.check(datafunc, [f1, f2, f3], compfunc=lambda x,y: np.allclose(x,y), names=names)
+quickbench.check([f1, f2, f3], args, compfunc=lambda x, y: np.allclose(x, y), names=names)
 # >     naive2 matches     naive1: True
 # >     einsum matches     naive1: True
 
-quickbench.bench(datafunc, [f1, f2, f3], names=names)
+quickbench.bench([f1, f2, f3], args, names=names)
 # > +-----------------+-----------------+-----------------+
 # > |       Functions |      Time (tot) | Time (per iter) |
 # > +-----------------+-----------------+-----------------+
@@ -50,20 +59,28 @@ quickbench.bench(datafunc, [f1, f2, f3], names=names)
 # > +-----------------+-----------------+-----------------+
 
 
-
 ###
-# Using the names of the function 
+# Using the names of the function
 
-def good(A, B, C): return (A @ B) @ C
-def bad(A, B, C): return A @ (B @ C)
-def einsum(A, B, C): return np.einsum("ij,jk,kl->il", A, B, C)
+def good(A, B, C):
+    return (A @ B) @ C
+
+
+def bad(A, B, C):
+    return A @ (B @ C)
+
+
+def einsum(A, B, C):
+    return np.einsum("ij,jk,kl->il", A, B, C, optimize=True)
+
+
 funcs = [good, bad, einsum]
 
-quickbench.check(datafunc, funcs, compfunc=lambda x,y: np.allclose(x,y))
+quickbench.check(funcs, args, compfunc=lambda x, y: np.allclose(x, y))
 # > [1] bad matches [0] good: True
 # > [2] einsum matches [0] good: True
 
-quickbench.bench(datafunc, funcs)
+quickbench.bench(funcs, args)
 # > +-----------------+-----------------+-----------------+
 # > |       Functions |      Time (tot) | Time (per iter) |
 # > +-----------------+-----------------+-----------------+
